@@ -1,0 +1,38 @@
+name: Deploy_to_AWS
+
+env:
+  NAME_OF_PRIVATE_KEY: "elad_ca-central-1.pem"
+  EC2_PUBLIC_IP: "15.222.12.15" 
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy_to_aws:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: mkdir .ssh and copy private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MY_PRIVATE_KEY }}" > ~/.ssh/${{ env.NAME_OF_PRIVATE_KEY }}
+          chmod 600 ~/.ssh/${{ env.NAME_OF_PRIVATE_KEY }}
+          ls -la ~/.ssh
+          pwd
+        
+      - name: Install SSH client
+        run: sudo apt install openssh-client
+
+      - name: Install Apache2 on EC2
+        run: |
+          sudo ssh -o StrictHostKeyChecking=no -i ~/.ssh/${{ env.NAME_OF_PRIVATE_KEY }} ubuntu@${{ env.EC2_PUBLIC_IP }} 'sudo apt update && sudo apt install -y apache2'
+
+      - name: Copy index.html to EC2
+        run: |
+          sudo scp -o  StrictHostKeyChecking=no -i ~/.ssh/${{ env.NAME_OF_PRIVATE_KEY }} /home/runner/work/Git_deploy_Sadna_2aws/Git_deploy_Sadna_2aws/index.html ubuntu@${{ env.EC2_PUBLIC_IP }}:/home/ubuntu
+         
